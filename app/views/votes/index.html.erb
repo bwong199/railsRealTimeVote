@@ -1,0 +1,138 @@
+<script src='http://localhost:8000/socket.io/socket.io.js'></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script src="http://code.highcharts.com/highcharts.js"></script>
+<script src="http://code.highcharts.com/modules/exporting.js"></script>
+
+<div id="container" style="min-width: 310px; height: 400px; max-width: 600px; margin: 0 auto"></div>
+
+<script> 
+
+
+
+var socket = io.connect("http://localhost:8000", {force_connection: true});
+
+$(document).ready(function() {
+    
+        $('#container').highcharts({
+            chart: {
+                plotBackgroundColor: null,
+                plotBorderWidth: null,
+                plotShadow: false,
+                type: 'pie'
+            },
+            title: {
+                text: 'Real Voting Results for Most Popular Programming Languages'
+            },
+            tooltip: {
+                pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+            },
+            plotOptions: {
+                pie: {
+                    allowPointSelect: true,
+                    cursor: 'pointer',
+                    dataLabels: {
+                        enabled: true,
+                        format: '<b>{point.name}</b>: {point.percentage:.1f} %  {point.y} votes',
+                        style: {
+                            color: (Highcharts.theme && Highcharts.theme.contrastTextColor) || 'black'
+                        }
+                    }
+                }
+            },
+
+            series: [{
+                name: "Brands",
+                colorByPoint: true,
+
+                data: [
+
+           
+                <% @languages.each do |u| %>
+                {   
+                    name: '<%= u.language %>',
+                    y: <%= u.votes.count %>,
+                    },
+                <% end %> 
+
+                ]
+            }]
+        });
+   
+
+
+    $('form').submit(function (){
+    var id = $(this).attr('id');
+    socket.emit("voting", {reason: id});
+    });
+    socket.on('server_response', function (data){
+    console.log('The server says: ' + data.response);
+    });
+
+
+    $('#create').submit(function(){
+        $.post($(this).attr('action'), $(this).serialize(), function(res) {
+                $('#language').html(res);
+        }, 'json');
+    return false;
+    });
+
+    $(document).on('submit', 'form', function(){
+        $.post($(this).attr('action'), $(this).serialize(), function(res) {
+                $('#container').html(res);
+        }, 'json');
+    return false;
+    });
+
+});
+
+</script> 
+
+
+<br>
+
+What is your favourite language? 
+<br> 
+<br> 
+
+<div id='language'></div> 
+
+<% @languages.each do |u| %>
+
+
+<br> 
+<form class="vote" id='<%= u.language %>' action="/votes" method="post">
+<%= u.language %> 
+<input type='hidden' name='language_id' value="<%= u.id %> ">
+<input type="submit" value='Vote'>
+</form> 
+
+
+<form  action="/languages/<%= u.id %> " method="post">
+<input type='hidden' name='authenticity_token' value='<%= form_authenticity_token %>'> 
+<input type='hidden' name='_method' value='delete'>
+<input type='hidden' name='language_id' value="<%= u.id %> ">
+<input type="submit" value='Delete'>
+</form> 
+
+<br> 
+
+<% end %> 
+
+<br> 
+<br> 
+
+<hr> 
+
+<form id="create" action="/languages" method="post">
+<input type='hidden' name='authenticity_token' value='<%= form_authenticity_token %>'>
+
+
+<label for="language">Language</label>
+<input type="text" id="language" name="language">
+
+</p>
+
+
+      <br> 
+      <input type="submit" value='Add Language'>
+    </form>
